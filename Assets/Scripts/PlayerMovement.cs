@@ -1,75 +1,87 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Movement Settings")]
+    public float WalkSpeed = 5f;
+    public float RunSpeed = 10f;
+    public float MoveSmoothTime = 0.1f;
+    public float GravityStrength = 9.81f;
 
-    public float MoveSmoothTime;
-    public float GravityStrength;
-    public float WalkSpeed;
-    public float RunSpeed;
+    [Header("Camera")]
+    public Transform CameraTransform;
 
-    private CharacterController Controller;
-    private Vector3 CurrentMoveVelocity;
-    private Vector3 MoveDampVelocity;
-
-    private Vector3 CurrentForceVelocity;
-
+    private CharacterController controller;
     private Animator anim;
 
-    // Start is called before the first frame update
+    private Vector3 currentVelocity;
+    private Vector3 velocityDamp;
+
+    private Vector3 gravityVelocity;
+
     void Start()
     {
-        Controller = GetComponent<CharacterController>();
+        controller = GetComponent<CharacterController>();
         anim = GetComponent<Animator>();
-        WalkSpeed = 5;
+
+        if (CameraTransform == null && Camera.main != null)
+            CameraTransform = Camera.main.transform;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        RunSpeed = WalkSpeed * 2;
-
-        Vector3 PlayerInput = new Vector3
-        {
-            x = Input.GetAxisRaw("Horizontal"),
-            y = 0f,
-            z = Input.GetAxisRaw("Vertical")
-        };
-
-        if (PlayerInput.magnitude > 1f)
-            PlayerInput.Normalize();
-
-        bool isMoving = PlayerInput.sqrMagnitude > 0.001f;
-        bool isRunning = Input.GetKey(KeyCode.LeftShift);
-
-        Vector3 MoveVector = transform.TransformDirection(PlayerInput);
-        float CurrentSpeed = isRunning ? RunSpeed : WalkSpeed;
-
-        float animSpeed = 0f;
-        if (isMoving)
-            animSpeed = isRunning ? 1f : 0.5f;
-
-        Debug.Log("Animation Speed" + animSpeed);
-        anim.SetFloat("Speed", animSpeed);
-
-        CurrentMoveVelocity = Vector3.SmoothDamp(
-            CurrentMoveVelocity,
-            MoveVector * CurrentSpeed,
-            ref MoveDampVelocity,
-            MoveSmoothTime
-        );
-
-        Controller.Move(CurrentMoveVelocity * Time.deltaTime);
-
-        Ray groundCheckray = new Ray(transform.position, Vector3.down);
-        if (Physics.Raycast(groundCheckray, 1.25f))
-            CurrentForceVelocity.y = -2f;
-        else
-            CurrentForceVelocity.y -= GravityStrength * Time.deltaTime;
-
-        Controller.Move(CurrentForceVelocity * Time.deltaTime);
+        HandleMovement();
+        HandleGravity();
     }
 
+    void HandleMovement()
+    {
+        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        if (input.magnitude > 1f) input.Normalize();
+
+        bool isMoving = input.sqrMagnitude > 0.001f;
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        float speed = isRunning ? RunSpeed : WalkSpeed;
+
+        Vector3 camForward = CameraTransform.forward;
+        Vector3 camRight = CameraTransform.right;
+
+
+        camForward.y = 0;
+        camRight.y = 0;
+        camForward.Normalize();
+        camRight.Normalize();
+
+        Vector3 move = camForward * input.z + camRight * input.x;
+
+        if (isMoving)
+        {
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                Quaternion.LookRotation(move),
+                10f * Time.deltaTime
+            );
+        }
+
+        currentVelocity = Vector3.SmoothDamp(currentVelocity, move * speed, ref velocityDamp, MoveSmoothTime);
+        controller.Move(currentVelocity * Time.deltaTime);
+
+        float animSpeed = isMoving ? (isRunning ? 1f : 0.5f) : 0f;
+        anim.SetFloat("Speed", animSpeed);
+    }
+
+    void HandleGravity()
+    {
+        if (controller.isGrounded)
+        {
+            gravityVelocity.y = -2f;
+        }
+        else
+        {
+            gravityVelocity.y -= GravityStrength * Time.deltaTime;
+        }
+
+        controller.Move(gravityVelocity * Time.deltaTime);
+    }
 }
