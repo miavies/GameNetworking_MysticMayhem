@@ -8,6 +8,7 @@ public class EnemyAIMovement : MonoBehaviour
     private Animator anim;
     [SerializeField] private Transform currentDestination;
     [SerializeField] private string state;
+    private float spawnTimer = 3.5f;
 
     [Header("Patroling")]
     [SerializeField] private float idleTime = 1.5f;
@@ -22,8 +23,8 @@ public class EnemyAIMovement : MonoBehaviour
     [SerializeField] private float stoppingDistance = 1f;
 
     [Header("Attack")]
-    [SerializeField] private float attackCooldown = 1.5f;
-    private float attackTimer = 0f;
+    [SerializeField] private float attackCooldown = 3f;
+    [SerializeField]private float attackTimer = 0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -35,6 +36,12 @@ public class EnemyAIMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (spawnTimer > 0f)
+        {
+            spawnTimer -= Time.deltaTime;
+            return;
+        }
+
         state = CheckState();
 
         switch (state) 
@@ -138,6 +145,7 @@ public class EnemyAIMovement : MonoBehaviour
         float stopZ = -(((zP - z) * stoppingDistance) / distance) + zP;
 
         Vector3 stoppingDestination = new Vector3(stopX, transform.position.y, stopZ);
+        anim.SetBool("Running", true);
         agent.SetDestination(stoppingDestination);
     }
 
@@ -147,11 +155,13 @@ public class EnemyAIMovement : MonoBehaviour
 
         LookAtTarget();
         attackTimer -= Time.deltaTime;
+        
+        anim.SetBool("Running", false);
+        anim.SetBool("Walking", false);
 
         if (attackTimer <= 0)
         {
-            Debug.Log("Animation: Attack");
-            //anim.SetTrigger("Attack");
+            anim.SetTrigger("Attack");
             attackTimer = attackCooldown;
         }
     }
@@ -169,8 +179,9 @@ public class EnemyAIMovement : MonoBehaviour
             idleTimer -= Time.deltaTime;
             agent.isStopped = true;
             agent.ResetPath();
-            Debug.Log("Animation: Idle");
-            //anim.SetBool("Walking", false);
+
+            anim.SetBool("Running", false);
+            anim.SetBool("Walking", false);
 
             if (idleTimer <= 0)
             {
@@ -178,8 +189,8 @@ public class EnemyAIMovement : MonoBehaviour
                 var z = Random.Range(-rangeOfView, rangeOfView);
 
                 Vector3 randomPoint = transform.position + new Vector3(x, 0f, z);
-                Debug.Log("Animation: Walking");
-                //anim.SetBool("Walking", true);
+
+                anim.SetBool("Walking", true); 
                 agent.SetDestination(randomPoint);
 
                 idleTimer = idleTime;
