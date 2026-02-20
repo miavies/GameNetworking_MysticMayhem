@@ -13,12 +13,12 @@ namespace Unity.Cinemachine.Samples
     /// player rotation.
     /// </summary>
     [ExecuteAlways]
-    public class AimCameraRig : CinemachineCameraManagerBase, Unity.Cinemachine.IInputAxisOwner
+    public class aimCamRig : CinemachineCameraManagerBase, Unity.Cinemachine.IInputAxisOwner
     {
         public InputAxis AimMode = InputAxis.DefaultMomentary;
 
         SimplePlayerAimController AimController;
-        CinemachineVirtualCameraBase AimCamera;
+        CinemachineVirtualCameraBase aimCam;
         CinemachineVirtualCameraBase FreeCamera;
 
         bool IsAiming => AimMode.Value > 0.5f;
@@ -46,30 +46,30 @@ namespace Unity.Cinemachine.Samples
                 var cam = ChildCameras[i];
                 if (!cam.isActiveAndEnabled)
                     continue;
-                if (AimCamera == null
+                if (aimCam == null
                     && cam.TryGetComponent<CinemachineThirdPersonAim>(out var aim)
                     && aim.NoiseCancellation)
                 {
-                    AimCamera = cam;
-                    var player = AimCamera.Follow;
+                    aimCam = cam;
+                    var player = aimCam.Follow;
                     if (player != null)
                         AimController = player.GetComponentInChildren<SimplePlayerAimController>();
                 }
                 else if (FreeCamera == null)
                     FreeCamera = cam;
             }
-            if (AimCamera == null)
-                Debug.LogError("AimCameraRig: no valid CinemachineThirdPersonAim camera found among children");
+            if (aimCam == null)
+                Debug.LogError("aimCamRig: no valid CinemachineThirdPersonAim camera found among children");
             if (AimController == null)
-                Debug.LogError("AimCameraRig: no valid SimplePlayerAimController target found");
+                Debug.LogError("aimCamRig: no valid SimplePlayerAimController target found");
             if (FreeCamera == null)
-                Debug.LogError("AimCameraRig: no valid non-aiming camera found among children");
+                Debug.LogError("aimCamRig: no valid non-aiming camera found among children");
         }
 
         protected override CinemachineVirtualCameraBase ChooseCurrentCamera(Vector3 worldUp, float deltaTime)
         {
             var oldCam = (CinemachineVirtualCameraBase)LiveChild;
-            var newCam = IsAiming ? AimCamera : FreeCamera;
+            var newCam = IsAiming ? aimCam : FreeCamera;
             if (AimController != null && oldCam != newCam)
             {
                 // Set the mode of the player aim controller.

@@ -9,12 +9,21 @@ public class PlayerActions : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] float mouseSensitivity = 2f;
+    [SerializeField] private float damage = 25f;
+    [SerializeField] private float range = 100f;
 
+    [SerializeField] private GameObject hitVFX;
+    [SerializeField] GameObject crosshair;
     private float yRotation;
     private Camera unityMainCam;
 
+    private Animator animator;
+
+
+
     void Start()
     {
+        animator = GetComponent<Animator>();
         unityMainCam = Camera.main;
         Cursor.lockState = CursorLockMode.Locked;
 
@@ -23,15 +32,25 @@ public class PlayerActions : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetMouseButtonDown(0) && animator.GetBool("Aiming"))
+        {
+            animator.SetTrigger("Attack");
+        }
+
         if (Input.GetMouseButtonDown(1))
         {
+            animator.ResetTrigger("Attack");
             SnapPlayerToCamera();
             aimCam.SetActive(true);
+            animator.SetBool("Aiming", true);
+            crosshair.SetActive(true);
         }
 
         if (Input.GetMouseButtonUp(1))
         {
             aimCam.SetActive(false);
+            animator.SetBool("Aiming", false);
+            crosshair.SetActive(false);
         }
 
         if (aimCam.activeSelf)
@@ -56,5 +75,22 @@ public class PlayerActions : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         yRotation += mouseX;
         transform.rotation = Quaternion.Euler(0, yRotation, 0);
+    }
+    public void Fire()
+    {
+        Ray ray = new Ray(aimCam.transform.position, aimCam.transform.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, range))
+        {
+            Health target = hit.collider.GetComponent<Health>();
+            if (target != null)
+            {
+                target.TakeDamage(damage);
+            }
+
+            GameObject vfxInstance = Instantiate(hitVFX, hit.point, Quaternion.LookRotation(hit.normal));
+            Destroy(vfxInstance, 2f);
+        }
     }
 }

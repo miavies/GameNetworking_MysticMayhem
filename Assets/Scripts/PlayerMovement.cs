@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector3 gravityVelocity;
 
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
