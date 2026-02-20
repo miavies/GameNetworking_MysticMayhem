@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,15 +9,19 @@ public class EnemyAIMovement : MonoBehaviour
     [SerializeField] private Transform currentDestination;
     [SerializeField] private string state;
 
+    [Header("Patroling")]
+    [SerializeField] private float idleTime = 1.5f;
+    private float idleTimer = 0f;
+
     [Header("Chasing")]
     [SerializeField] private GameObject target;
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private float fieldOfView = 45f;
     [SerializeField] private float rangeOfView = 8f;
     [SerializeField] private float attackRange = 3f;
+    [SerializeField] private float stoppingDistance = 1f;
 
     [Header("Attack")]
-    [SerializeField] private bool isAttacking = false;
     [SerializeField] private float attackCooldown = 1.5f;
     private float attackTimer = 0f;
 
@@ -30,16 +35,12 @@ public class EnemyAIMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        attackTimer -= Time.deltaTime;
-
         state = CheckState();
 
         switch (state) 
         {
             case "Patrol":
                 Debug.Log("Patrolling");
-                agent.speed = 2;
-                agent.isStopped = false;
                 Patrol();
                 break;
 
@@ -60,44 +61,17 @@ public class EnemyAIMovement : MonoBehaviour
     {
         CheckIfEnteredRange();
 
-        if (isAttacking)
+        if (IsTargetVisible() && Vector3.Distance(transform.position, target.transform.position) <= attackRange)
         {
             return "Attack";
         }
 
         if (IsTargetVisible())
         {
-            LookAtTarget();
             return "Chase";
         }
 
         return "Patrol";
-    }
-
-    private void Chase()
-    {
-        if (target == null) return;
-
-        agent.speed = 6;
-
-        if (Vector3.Distance(transform.position, target.transform.position) <= attackRange && attackTimer <= 0f)
-        {
-            agent.isStopped = true;
-            isAttacking = true;
-        }
-        else
-        {
-            agent.isStopped = false;
-            agent.SetDestination(target.transform.position);
-        }
-    }
-
-    private void Attack()
-    {
-        anim.SetTrigger("Attack");
-
-        attackTimer = attackCooldown;
-        isAttacking = false;
     }
 
     private void CheckIfEnteredRange()
@@ -143,19 +117,73 @@ public class EnemyAIMovement : MonoBehaviour
         transform.rotation = Quaternion.LookRotation(direction);
     }
 
+    private void Chase()
+    {
+        if (target == null) return;
+
+        LookAtTarget();
+
+        agent.speed = 6;
+
+        agent.isStopped = false;
+
+
+        float distance = Vector3.Distance(transform.position, target.transform.position);
+        float x = transform.position.x;
+        float z = transform.position.z;
+        float xP = target.transform.position.x;
+        float zP = target.transform.position.z;
+
+        float stopX = -(((xP-x)*stoppingDistance)/distance) + xP;
+        float stopZ = -(((zP - z) * stoppingDistance) / distance) + zP;
+
+        Vector3 stoppingDestination = new Vector3(stopX, transform.position.y, stopZ);
+        agent.SetDestination(stoppingDestination);
+    }
+
+    private void Attack()
+    {
+        if (target == null) return;
+
+        LookAtTarget();
+        attackTimer -= Time.deltaTime;
+
+        if (attackTimer <= 0)
+        {
+            Debug.Log("Animation: Attack");
+            //anim.SetTrigger("Attack");
+            attackTimer = attackCooldown;
+        }
+    }
+
     private void Patrol()
     {
+        agent.speed = 2;
+        agent.isStopped = false;
+
         if (agent.pathPending || !agent.isOnNavMesh)
             return;
 
         if (!agent.hasPath || agent.remainingDistance <= agent.stoppingDistance)
         {
-            var x = Random.Range(-rangeOfView, rangeOfView); 
-            var z = Random.Range(-rangeOfView, rangeOfView);
+            idleTimer -= Time.deltaTime;
+            agent.isStopped = true;
+            agent.ResetPath();
+            Debug.Log("Animation: Idle");
+            //anim.SetBool("Walking", false);
 
-            Vector3 randomPoint = transform.position + new Vector3(x, 0f, z);
+            if (idleTimer <= 0)
+            {
+                var x = Random.Range(-rangeOfView, rangeOfView);
+                var z = Random.Range(-rangeOfView, rangeOfView);
 
-            agent.SetDestination(randomPoint);
+                Vector3 randomPoint = transform.position + new Vector3(x, 0f, z);
+                Debug.Log("Animation: Walking");
+                //anim.SetBool("Walking", true);
+                agent.SetDestination(randomPoint);
+
+                idleTimer = idleTime;
+            }
         }
     }
 
