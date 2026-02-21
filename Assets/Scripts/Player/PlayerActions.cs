@@ -26,6 +26,7 @@ public class PlayerActions : MonoBehaviour
         animator = GetComponent<Animator>();
         unityMainCam = Camera.main;
         Cursor.lockState = CursorLockMode.Locked;
+        crosshair = GameObject.Find("Crosshair");
 
         yRotation = transform.eulerAngles.y;
     }
@@ -83,7 +84,7 @@ public class PlayerActions : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, range))
         {
-            Health target = hit.collider.GetComponent<Health>();
+            NetworkHealth target = hit.collider.GetComponent<NetworkHealth>();
             if (target != null)
             {
                 target.TakeDamage(damage);

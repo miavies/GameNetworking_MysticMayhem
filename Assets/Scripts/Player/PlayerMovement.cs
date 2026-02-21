@@ -56,7 +56,8 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 move = camForward * input.z + camRight * input.x;
 
-        if (isMoving)
+        bool isAiming = anim.GetBool("Aiming");
+        if (isMoving && !isAiming)
         {
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
