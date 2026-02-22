@@ -11,8 +11,9 @@ namespace Network
     {
         #region Public Variables
         [SerializeField] private NetworkPrefabRef playerPrefab;
-        [SerializeField] private TextMeshProUGUI _playerCountText;
-        [SerializeField] private TextMeshProUGUI _timerCountText;
+        [SerializeField] private Transform spawnPoint;
+        //[SerializeField] private TextMeshProUGUI _playerCountText;
+        //[SerializeField] private TextMeshProUGUI _timerCountText;
         #endregion
         
         private Dictionary<PlayerRef, NetworkObject> _spawnedCharacters = new();
@@ -52,17 +53,17 @@ namespace Network
 
         public override void Render()
         {
-            _playerCountText.text = 
-                $"Players: {Object.Runner.ActivePlayers.Count()}/{maxPlayers}";
+            //_playerCountText.text = 
+            //    $"Players: {Object.Runner.ActivePlayers.Count()}/{maxPlayers}";
             
-            if (RoundStartTimer.IsRunning)
-            {
-                _timerCountText.text = RoundStartTimer.RemainingTime(Object.Runner).ToString();
-            }
-            else
-            {
-                _timerCountText.text = "";
-            }
+            //if (RoundStartTimer.IsRunning)
+            //{
+            //    _timerCountText.text = RoundStartTimer.RemainingTime(Object.Runner).ToString();
+            //}
+            //else
+            //{
+            //    _timerCountText.text = "";
+            //}
         }
 
 
@@ -97,8 +98,8 @@ namespace Network
             foreach (var playerSpawn 
                      in NetworkSessionManager.Instance.JoinedPlayers)
             {
-                var networkObject = Object.Runner.Spawn(playerPrefab, 
-                    Vector3.zero, Quaternion.identity, playerSpawn);
+                var networkObject = Object.Runner.Spawn(playerPrefab,
+                    spawnPoint.position, Quaternion.identity, playerSpawn);
                 _spawnedCharacters.Add(playerSpawn, networkObject);
             }
         }

@@ -1,97 +1,120 @@
+using Fusion;
 using UnityEngine;
-using Unity.Cinemachine;
 
-public class PlayerActions : MonoBehaviour
+public class PlayerActions : NetworkBehaviour
 {
     [Header("Cameras")]
-    [SerializeField] GameObject mainCam;
-    [SerializeField] GameObject aimCam;
+    [SerializeField] private GameObject mainCam;
+    [SerializeField] private GameObject aimCam;
 
     [Header("Settings")]
-    [SerializeField] float mouseSensitivity = 2f;
+    [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private float damage = 25f;
     [SerializeField] private float range = 100f;
 
+    [Header("Effects")]
     [SerializeField] private GameObject hitVFX;
-    [SerializeField] GameObject crosshair;
-    private float yRotation;
-    private Camera unityMainCam;
+    [SerializeField] private GameObject crosshair;
 
     private Animator animator;
 
+    private float yRotation;
+    private bool isAiming;
 
-
-    void Start()
+    public override void Spawned()
     {
         animator = GetComponent<Animator>();
-        unityMainCam = Camera.main;
-        Cursor.lockState = CursorLockMode.Locked;
-        crosshair = GameObject.Find("Crosshair");
+
+        mainCam.SetActive(Object.HasInputAuthority);
+        aimCam.SetActive(false);
+        crosshair.SetActive(false);
 
         yRotation = transform.eulerAngles.y;
+
+        if (Object.HasInputAuthority)
+            Cursor.lockState = CursorLockMode.Locked;
     }
 
-    void Update()
+    public override void FixedUpdateNetwork()
     {
-        if (Input.GetMouseButtonDown(0) && animator.GetBool("Aiming"))
+        if (!GetInput(out NetworkInputData data))
+            return;
+
+        HandleAiming(data);
+    }
+
+    private void HandleAiming(NetworkInputData data)
+    {
+        if (data.AimPressed && !isAiming)
         {
-            animator.SetTrigger("Attack");
+            SnapPlayerToCamera(data.CameraForward);
+            isAiming = true;
         }
 
-        if (Input.GetMouseButtonDown(1))
+        if (data.AimReleased)
         {
-            animator.ResetTrigger("Attack");
-            SnapPlayerToCamera();
-            aimCam.SetActive(true);
-            animator.SetBool("Aiming", true);
-            crosshair.SetActive(true);
+            isAiming = false;
         }
 
-        if (Input.GetMouseButtonUp(1))
+        if (isAiming)
         {
-            aimCam.SetActive(false);
-            animator.SetBool("Aiming", false);
-            crosshair.SetActive(false);
+            yRotation += data.MouseDeltaX * mouseSensitivity;
+            transform.rotation = Quaternion.Euler(0, yRotation, 0);
         }
 
-        if (aimCam.activeSelf)
+        if (data.FirePressed && isAiming)
         {
-            RotatePlayerWithMouse();
+            Fire(data.CameraPosition, data.CameraForward);
         }
     }
 
-    void SnapPlayerToCamera()
+    private void SnapPlayerToCamera(Vector3 camForward)
     {
-        Vector3 cameraForward = unityMainCam.transform.forward;
-        cameraForward.y = 0;
-        if (cameraForward.sqrMagnitude > 0.01f)
+        camForward.y = 0f;
+
+        if (camForward.sqrMagnitude > 0.01f)
         {
-            transform.rotation = Quaternion.LookRotation(cameraForward);
+            transform.rotation = Quaternion.LookRotation(camForward);
             yRotation = transform.eulerAngles.y;
         }
     }
 
-    void RotatePlayerWithMouse()
+    private void Fire(Vector3 origin, Vector3 direction)
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        yRotation += mouseX;
-        transform.rotation = Quaternion.Euler(0, yRotation, 0);
-    }
-    public void Fire()
-    {
-        Ray ray = new Ray(aimCam.transform.position, aimCam.transform.forward);
-        RaycastHit hit;
+        if (!Object.HasInputAuthority) return;
 
-        if (Physics.Raycast(ray, out hit, range))
+        RPC_Fire(origin, direction);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Fire(Vector3 origin, Vector3 direction)
+    {
+        Ray ray = new Ray(origin, direction);
+
+        if (Physics.Raycast(ray, out RaycastHit hit, range))
         {
             NetworkHealth target = hit.collider.GetComponent<NetworkHealth>();
-            if (target != null)
-            {
-                target.TakeDamage(damage);
-            }
 
-            GameObject vfxInstance = Instantiate(hitVFX, hit.point, Quaternion.LookRotation(hit.normal));
-            Destroy(vfxInstance, 2f);
+            if (target != null && target.CompareTag("Enemy"))
+                target.TakeDamage(damage);
+
+            if (hitVFX != null)
+            {
+                var vfx = Instantiate(hitVFX, hit.point,
+                    Quaternion.LookRotation(hit.normal));
+
+                Destroy(vfx, 2f);
+            }
         }
+    }
+
+    void Update()
+    {
+        if (!Object.HasInputAuthority) return;
+
+        aimCam.SetActive(isAiming);
+        crosshair.SetActive(isAiming);
+
+        animator.SetBool("Aiming", isAiming);
     }
 }
