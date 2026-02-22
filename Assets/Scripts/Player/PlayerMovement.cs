@@ -38,7 +38,6 @@ public class PlayerMovement : NetworkBehaviour
                 Speed = 0f,
                 Attack = false,
                 Aiming = false,
-                Death = false
             };
         }
     }
@@ -89,5 +88,10 @@ public class PlayerMovement : NetworkBehaviour
         float targetSpeed = AnimatorData.Speed;
         float current = anim.GetFloat("Speed");
         anim.SetFloat("Speed", Mathf.Lerp(current, targetSpeed, 0.05f));
+    }
+
+    public override void Render()
+    {
+       ApplyAnimatorSpeed();
     }
 }

@@ -11,12 +11,18 @@ public class NetworkHealth : NetworkBehaviour
     [SerializeField] private Slider healthBar;
     public override void Spawned()
     {
+        if (Object.HasInputAuthority)
+        {
+            healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
+            healthBar.maxValue = maxHealth;
+        }
+
+        // Server initializes health
         if (HasStateAuthority)
         {
             currentHealth = maxHealth;
         }
 
-        healthBar.maxValue = maxHealth;
         UpdateHealthBar();
     }
 
@@ -43,6 +49,8 @@ public class NetworkHealth : NetworkBehaviour
 
     void UpdateHealthBar()
     {
+        if (!Object.HasInputAuthority) return;
+
         if (healthBar != null)
             healthBar.value = currentHealth;
     }

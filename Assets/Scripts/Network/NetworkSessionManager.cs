@@ -66,7 +66,7 @@ namespace Network
         private void Start()
         {
             #if SERVER
-            StartGame(GameMode.Host);
+            StartGame(GameMode.Server);
             #elif CLIENT
             StartGame(GameMode.Client);
             #endif
@@ -95,9 +95,8 @@ namespace Network
             data.InputVector = forward * v + right * h;
             data.SprintInput = Input.GetKey(KeyCode.LeftShift);
 
-            // In NetworkSessionManager.OnInput
-            data.AimPressed = Input.GetMouseButtonDown(1);   // Only true on the frame button was pressed
-            data.AimReleased = Input.GetMouseButtonUp(1);   // Only true on the frame button was released
+            data.AimPressed = Input.GetMouseButtonDown(1); 
+            data.AimReleased = Input.GetMouseButtonUp(1);   
 
             data.FirePressed = Input.GetMouseButtonDown(0);
 

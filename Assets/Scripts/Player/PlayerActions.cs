@@ -1,4 +1,5 @@
 using Fusion;
+using Network;
 using UnityEngine;
 
 public class PlayerActions : NetworkBehaviour
@@ -21,8 +22,19 @@ public class PlayerActions : NetworkBehaviour
     private float yRotation;
     private bool isAiming;
 
+    [Networked] public PlayerNetworkAnimatorData AnimatorData { get; set; }
+
     public override void Spawned()
     {
+        if (HasStateAuthority)
+        {
+            AnimatorData = new PlayerNetworkAnimatorData()
+            {
+                Speed = 0f,
+                Attack = false,
+                Aiming = false,
+            };
+        }
         animator = GetComponent<Animator>();
 
         mainCam.SetActive(Object.HasInputAuthority);
@@ -49,11 +61,25 @@ public class PlayerActions : NetworkBehaviour
         {
             SnapPlayerToCamera(data.CameraForward);
             isAiming = true;
+
+            AnimatorData = new PlayerNetworkAnimatorData()
+            {
+                Speed = 0f,
+                Attack = false,
+                Aiming = true,
+            };
         }
 
         if (data.AimReleased)
         {
             isAiming = false;
+
+            AnimatorData = new PlayerNetworkAnimatorData()
+            {
+                Speed = 0f,
+                Attack = false,
+                Aiming = false,
+            };
         }
 
         if (isAiming)
@@ -82,7 +108,7 @@ public class PlayerActions : NetworkBehaviour
     private void Fire(Vector3 origin, Vector3 direction)
     {
         if (!Object.HasInputAuthority) return;
-
+        
         RPC_Fire(origin, direction);
     }
 
@@ -93,7 +119,7 @@ public class PlayerActions : NetworkBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit hit, range))
         {
-            NetworkHealth target = hit.collider.GetComponent<NetworkHealth>();
+            EnemyNetworkHealth target = hit.collider.GetComponent<EnemyNetworkHealth>();
 
             if (target != null && target.CompareTag("Enemy"))
                 target.TakeDamage(damage);
@@ -106,6 +132,12 @@ public class PlayerActions : NetworkBehaviour
                 Destroy(vfx, 2f);
             }
         }
+    }
+    public override void Render()
+    {
+        animator.SetBool("Aiming", AnimatorData.Aiming);
+
+       
     }
 
     void Update()
