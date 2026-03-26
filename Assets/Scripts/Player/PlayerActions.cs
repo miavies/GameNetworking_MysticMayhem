@@ -22,6 +22,8 @@ public class PlayerActions : NetworkBehaviour
     private float yRotation;
     private bool isAiming;
 
+    public int score;
+
     [Networked] public PlayerNetworkAnimatorData AnimatorData { get; set; }
 
     public override void Spawned()
@@ -122,7 +124,8 @@ public class PlayerActions : NetworkBehaviour
             EnemyNetworkHealth target = hit.collider.GetComponent<EnemyNetworkHealth>();
 
             if (target != null && target.CompareTag("Enemy"))
-                target.TakeDamage(damage);
+                target.TakeDamage(damage, Object.InputAuthority);
+
 
             if (hitVFX != null)
             {

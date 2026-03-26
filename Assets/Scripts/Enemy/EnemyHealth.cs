@@ -1,4 +1,5 @@
 using Fusion;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,12 +10,11 @@ public class EnemyNetworkHealth : NetworkBehaviour
 
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private Slider healthBar;
+
+    [SerializeField] private WebRequest web;
     public override void Spawned()
     {
-        if (gameObject.CompareTag("Player"))
-        {
-            healthBar = GameObject.Find("HealthBar").GetComponent<Slider>();
-        }
+        web = GameObject.Find("Managers").GetComponentInChildren<WebRequest>();
 
         if (HasStateAuthority)
         {
@@ -25,8 +25,29 @@ public class EnemyNetworkHealth : NetworkBehaviour
         UpdateHealthBar();
     }
 
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    void RPC_OnEnemyKilled(PlayerRef killer)
+    {
+        if (Runner.LocalPlayer == killer)
+        {
+            NetworkObject playerObj = Runner.GetPlayerObject(killer);
 
-    public void TakeDamage(float amount)
+            Debug.Log("RPC Found: " + playerObj);
+            if (playerObj != null)
+            {
+                PlayerActions pActions = playerObj.GetComponent<PlayerActions>();
+                Debug.Log("PlayerActions: " + pActions);
+                if (pActions != null)
+                {
+                    pActions.score += 1;
+                    Debug.Log("Score: " + pActions.score);
+                    web.StartUpdateKills(pActions.score);
+                }
+            }
+        }
+    }
+
+    public void TakeDamage(float amount, PlayerRef attacker)
     {
         if (!HasStateAuthority) return;
 
@@ -37,7 +58,7 @@ public class EnemyNetworkHealth : NetworkBehaviour
 
         if (currentHealth <= 0)
         {
-            Die();
+            Die(attacker);
         }
     }
 
@@ -52,8 +73,20 @@ public class EnemyNetworkHealth : NetworkBehaviour
             healthBar.value = currentHealth;
     }
 
-    void Die()
+    void Die(PlayerRef killer)
     {
+        Debug.Log("Enemy died. Killer: " + killer);
+
+        RPC_OnEnemyKilled(killer);
+
+        Debug.Log("RPC Fired ");
+
+        StartCoroutine(DespawnDelay());
+    }
+
+    IEnumerator DespawnDelay()
+    {
+        yield return new WaitForSeconds(0.2f);
         Runner.Despawn(Object);
     }
 }

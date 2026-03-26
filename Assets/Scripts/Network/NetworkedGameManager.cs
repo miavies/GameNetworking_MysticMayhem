@@ -101,6 +101,8 @@ namespace Network
                 var networkObject = Object.Runner.Spawn(playerPrefab,
                     spawnPoint.position, Quaternion.identity, playerSpawn);
                 _spawnedCharacters.Add(playerSpawn, networkObject);
+                Object.Runner.SetPlayerObject(playerSpawn, networkObject);
+                Debug.Log("PlayerObj check: " + Runner.GetPlayerObject(playerSpawn));
             }
         }
     }

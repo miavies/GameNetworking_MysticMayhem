@@ -85,17 +85,14 @@ public class EnemyAIMovement : NetworkBehaviour
         switch (state)
         {
             case "Patrol":
-                Debug.Log("Patrolling");
                 Patrol();
                 break;
 
             case "Chase":
-                Debug.Log("Chasing");
                 Chase();
                 break;
 
             case "Attack":
-                Debug.Log("Attacking");
                 Attack();
                 break;
         }

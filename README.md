@@ -1,2 +1,2 @@
 Video Link
-https://drive.google.com/drive/folders/1kzi88DlFyu9G9LQTM2-4F3WAWVZtZorv?usp=sharing
+https://drive.google.com/file/d/1mTocXsmvZXXpEYkZ7_Txdrxp1F4jwVVi/view?usp=sharing

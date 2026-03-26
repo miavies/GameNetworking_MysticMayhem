@@ -68,7 +68,7 @@ namespace Network
             #if SERVER
             StartGame(GameMode.Server);
             #elif CLIENT
-            StartGame(GameMode.Client);
+            //StartGame(GameMode.Client);
             #endif
         }
         #endregion
